@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Renderização de Áudio</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .test-container {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .audio-test {
+            margin: 15px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        .test-result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background-color: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        audio {
+            width: 100%;
+            margin: 10px 0;
+        }
+        .custom-audio-player {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 12px;
+            padding: 20px;
+            color: white;
+            margin: 10px 0;
+        }
+        .play-button {
+            background: rgba(255,255,255,0.2);
+            border: 2px solid white;
+            border-radius: 50%;
+            width: 50px;
+            height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .play-button:hover {
+            background: rgba(255,255,255,0.3);
+        }
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: rgba(255,255,255,0.3);
+            border-radius: 3px;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+        .progress-fill {
+            height: 100%;
+            background: white;
+            border-radius: 3px;
+            width: 0%;
+            transition: width 0.1s;
+        }
+        .time-display {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            margin-top: 5px;
+        }
+    </style>
+</head>
+<body>
+    <h1>🎵 Teste de Renderização de Áudio</h1>
+    <p>Este teste verifica se os diferentes formatos de áudio estão sendo renderizados corretamente no sistema.</p>
+
+    <div class="test-container">
+        <h2>📊 Resultados dos Testes</h2>
+        <div id="test-results"></div>
+    </div>
+
+    <div class="test-container">
+        <h2>🎵 Teste 1: Áudio Data URL (OGG/Opus) - Real do Sistema</h2>
+        <div class="audio-test">
+            <div class="test-title">Áudio OGG com codecs=opus (formato do WhatsApp)</div>
+            <div id="audio-test-1"></div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🎵 Teste 2: Player HTML5 Nativo</h2>
+        <div class="audio-test">
+            <div class="test-title">Player de áudio padrão do navegador</div>
+            <audio controls id="native-audio">
+                Seu navegador não suporta o elemento de áudio.
+            </audio>
+            <div id="native-test-result"></div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🎵 Teste 3: Player Customizado (Como no Sistema)</h2>
+        <div class="audio-test">
+            <div class="test-title">Player customizado similar ao do chat</div>
+            <div class="custom-audio-player">
+                <div style="display: flex; align-items: center; gap: 15px;">
+                    <div class="play-button" id="custom-play-btn">
+                        <span id="play-icon">▶</span>
+                    </div>
+                    <div style="flex: 1;">
+                        <div class="progress-bar" id="progress-bar">
+                            <div class="progress-fill" id="progress-fill"></div>
+                        </div>
+                        <div class="time-display">
+                            <span id="current-time">0:00</span>
+                            <span id="total-time">0:00</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <audio id="custom-audio" style="display: none;"></audio>
+            <div id="custom-test-result"></div>
+        </div>
+    </div>
+
+    <div class="test-container">
+        <h2>🔍 Teste 4: Detecção de Tipo</h2>
+        <div class="audio-test">
+            <div class="test-title">Verificar se a função detectContentType funciona</div>
+            <div id="type-detection-result"></div>
+        </div>
+    </div>
+
+    <script>
+        // Dados de áudio reais do sistema (base64 truncado para teste)
+        const realAudioData = 'data:audio/ogg; codecs=opus;base64,T2dnUwACAAAAAAAAAAAAAAAAAAAAACqCBoIBE09wdXNIZWFkAQEAAEgAAAAAAABOukAAAAAAAJAU';
+        
+        // Função de detecção de tipo (copiada do sistema)
+        function detectContentType(content) {
+            if (!content || typeof content !== 'string') {
+                return 'text';
+            }
+            
+            if (content.startsWith('data:audio/')) {
+                return 'audio';
+            }
+            
+            if (content.startsWith('data:video/')) {
+                return 'video';
+            }
+            
+            if (content.startsWith('data:image/')) {
+                return 'image';
+            }
+            
+            if (content.startsWith('http')) {
+                const extension = content.split('.').pop()?.toLowerCase().split('?')[0];
+                if (['mp3', 'wav', 'ogg', 'aac', 'm4a', 'flac', 'opus'].includes(extension || '')) {
+                    return 'audio';
+                }
+            }
+            
+            return 'text';
+        }
+        
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = Math.floor(seconds % 60);
+            return `${mins}:${secs.toString().padStart(2, '0')}`;
+        }
+        
+        function showResult(elementId, success, message) {
+            const element = document.getElementById(elementId);
+            element.className = `test-result ${success ? 'success' : 'error'}`;
+            element.innerHTML = `${success ? '✅' : '❌'} ${message}`;
+        }
+        
+        function showWarning(elementId, message) {
+            const element = document.getElementById(elementId);
+            element.className = 'test-result warning';
+            element.innerHTML = `⚠️ ${message}`;
+        }
+        
+        // Teste 1: Renderizar áudio real do sistema
+        function test1() {
+            const container = document.getElementById('audio-test-1');
+            
+            // Criar elemento de áudio
+            const audio = document.createElement('audio');
+            audio.controls = true;
+            audio.style.width = '100%';
+            audio.src = realAudioData;
+            
+            container.appendChild(audio);
+            
+            // Testar se carrega
+            audio.addEventListener('loadedmetadata', () => {
+                showResult('audio-test-1', true, `Áudio carregado com sucesso! Duração: ${formatTime(audio.duration)}`);
+            });
+            
+            audio.addEventListener('error', (e) => {
+                showResult('audio-test-1', false, `Erro ao carregar áudio: ${e.target.error?.message || 'Erro desconhecido'}`);
+            });
+            
+            // Timeout para detectar se não carrega
+            setTimeout(() => {
+                if (audio.readyState === 0) {
+                    showWarning('audio-test-1', 'Áudio não carregou após 3 segundos. Pode ser um problema de formato.');
+                }
+            }, 3000);
+        }
+        
+        // Teste 2: Player nativo
+        function test2() {
+            const audio = document.getElementById('native-audio');
+            audio.src = realAudioData;
+            
+            audio.addEventListener('loadedmetadata', () => {
+                showResult('native-test-result', true, `Player nativo funcionando! Duração: ${formatTime(audio.duration)}`);
+            });
+            
+            audio.addEventListener('error', (e) => {
+                showResult('native-test-result', false, `Player nativo falhou: ${e.target.error?.message || 'Erro desconhecido'}`);
+            });
+        }
+        
+        // Teste 3: Player customizado
+        function test3() {
+            const audio = document.getElementById('custom-audio');
+            const playBtn = document.getElementById('custom-play-btn');
+            const playIcon = document.getElementById('play-icon');
+            const progressBar = document.getElementById('progress-bar');
+            const progressFill = document.getElementById('progress-fill');
+            const currentTimeEl = document.getElementById('current-time');
+            const totalTimeEl = document.getElementById('total-time');
+            
+            audio.src = realAudioData;
+            let isPlaying = false;
+            
+            audio.addEventListener('loadedmetadata', () => {
+                totalTimeEl.textContent = formatTime(audio.duration);
+                showResult('custom-test-result', true, `Player customizado pronto! Duração: ${formatTime(audio.duration)}`);
+            });
+            
+            audio.addEventListener('error', (e) => {
+                showResult('custom-test-result', false, `Player customizado falhou: ${e.target.error?.message || 'Erro desconhecido'}`);
+            });
+            
+            audio.addEventListener('timeupdate', () => {
+                const progress = (audio.currentTime / audio.duration) * 100;
+                progressFill.style.width = `${progress}%`;
+                currentTimeEl.textContent = formatTime(audio.currentTime);
+            });
+            
+            playBtn.addEventListener('click', () => {
+                if (isPlaying) {
+                    audio.pause();
+                    playIcon.textContent = '▶';
+                    isPlaying = false;
+                } else {
+                    audio.play().then(() => {
+                        playIcon.textContent = '⏸';
+                        isPlaying = true;
+                    }).catch(e => {
+                        showResult('custom-test-result', false, `Erro ao reproduzir: ${e.message}`);
+                    });
+                }
+            });
+            
+            progressBar.addEventListener('click', (e) => {
+                const rect = progressBar.getBoundingClientRect();
+                const percent = (e.clientX - rect.left) / rect.width;
+                audio.currentTime = percent * audio.duration;
+            });
+        }
+        
+        // Teste 4: Detecção de tipo
+        function test4() {
+            const container = document.getElementById('type-detection-result');
+            
+            const testCases = [
+                { content: realAudioData, expected: 'audio' },
+                { content: 'data:video/mp4;base64,AAAAAA', expected: 'video' },
+                { content: 'data:image/jpeg;base64,/9j/4AAQ', expected: 'image' },
+                { content: 'https://example.com/audio.mp3', expected: 'audio' },
+                { content: 'https://example.com/video.mp4', expected: 'video' },
+                { content: 'Texto normal', expected: 'text' }
+            ];
+            
+            let results = [];
+            
+            testCases.forEach((test, i) => {
+                const detected = detectContentType(test.content);
+                const success = detected === test.expected;
+                results.push(`
+                    <div style="margin: 5px 0; padding: 5px; background: ${success ? '#d4edda' : '#f8d7da'}; border-radius: 3px;">
+                        ${success ? '✅' : '❌'} Teste ${i+1}: ${test.content.substring(0, 30)}... 
+                        <br><small>Esperado: ${test.expected}, Detectado: ${detected}</small>
+                    </div>
+                `);
+            });
+            
+            container.innerHTML = results.join('');
+        }
+        
+        // Executar todos os testes
+        function runAllTests() {
+            console.log('🎵 Iniciando testes de áudio...');
+            
+            test1();
+            test2();
+            test3();
+            test4();
+            
+            // Resumo dos testes
+            const summary = document.getElementById('test-results');
+            summary.innerHTML = `
+                <div class="test-result warning">
+                    ⏳ Testes em execução... Verifique os resultados abaixo.
+                    <br><small>Se os áudios não carregarem, pode haver problema com o formato OGG/Opus no seu navegador.</small>
+                </div>
+            `;
+        }
+        
+        // Executar testes quando a página carregar
+        document.addEventListener('DOMContentLoaded', runAllTests);
+        
+        // Log de debug
+        console.log('🔍 Dados de teste:', {
+            audioDataLength: realAudioData.length,
+            audioDataPreview: realAudioData.substring(0, 100),
+            detectedType: detectContentType(realAudioData),
+            browserSupport: {
+                audio: !!window.Audio,
+                mediaSource: !!window.MediaSource,
+                webAudio: !!window.AudioContext || !!window.webkitAudioContext
+            }
+        });
+    </script>
+</body>
+</html>

@@ -1,0 +1,32 @@
+{
+  "name": "crm-c4",
+  "description": "CRM C4 Application",
+  "scripts": {
+    "postdeploy": "bash ./heroku-build.sh"
+  },
+  "env": {
+    "NPM_CONFIG_LEGACY_PEER_DEPS": {
+      "value": "true"
+    },
+    "NPM_CONFIG_FORCE": {
+      "value": "true"
+    },
+    "NPM_CONFIG_PACKAGE_LOCK": {
+      "value": "false"
+    },
+    "USE_NPM_INSTALL": {
+      "value": "true"
+    },
+    "NODE_OPTIONS": {
+      "value": "--max-old-space-size=4096"
+    },
+    "WEB_MEMORY": {
+      "value": "512"
+    }
+  },
+  "buildpacks": [
+    {
+      "url": "heroku/nodejs"
+    }
+  ]
+}

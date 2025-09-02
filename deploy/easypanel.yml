@@ -1,0 +1,65 @@
+# EasyPanel Configuration for CRM-C4 Application
+# Updated configuration to resolve buildpack deployment issues
+
+name: crm-c4
+description: "CRM Application with WhatsApp Integration"
+
+# Build configuration - using Docker instead of buildpack
+build:
+  dockerfile: Dockerfile.optimized
+  context: .
+  args:
+    NODE_ENV: production
+
+# Service configuration
+services:
+  - name: web
+    type: web
+    port: 3000
+    healthcheck:
+      path: /api/health
+      interval: 30
+      timeout: 10
+      retries: 3
+      start_period: 40
+    
+    # Environment variables (configure these in EasyPanel UI)
+    env:
+      - NODE_ENV=production
+      - PORT=3000
+      - HOSTNAME=0.0.0.0
+      # Add your actual values in EasyPanel:
+      # - GEMINI_API_KEY=
+      # - EVOLUTION_API_URL=
+      # - EVOLUTION_API_KEY=
+      # - NEXT_PUBLIC_APP_URL=
+
+# Resource requirements
+resources:
+  memory: 1Gi
+  cpu: 0.5
+
+# Scaling configuration
+scaling:
+  min: 1
+  max: 3
+  target_cpu: 70
+
+# Deployment strategy
+deployment:
+  strategy: rolling
+  max_unavailable: 0
+  max_surge: 1
+
+# Domains (configure in EasyPanel UI)
+# domains:
+#   - your-domain.com
+#   - www.your-domain.com
+
+# Additional configuration to prevent buildpack issues
+platform:
+  buildpack: false  # Force Docker build instead of buildpack
+  docker:
+    build_args:
+      - NODE_ENV=production
+    target: production

@@ -1,0 +1,19 @@
+[
+  {
+    "origin": [
+      "https://c4c.devsible.com.br",
+      "http://localhost:9002",
+      "https://localhost:9002",
+      "http://localhost:9003",
+      "https://localhost:9003"
+    ],
+    "method": ["GET"],
+    "maxAgeSeconds": 3600,
+    "responseHeader": [
+      "Content-Type",
+      "Access-Control-Allow-Origin",
+      "Access-Control-Allow-Methods",
+      "Access-Control-Allow-Headers"
+    ]
+  }
+]

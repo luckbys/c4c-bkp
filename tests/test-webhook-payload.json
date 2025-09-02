@@ -1,0 +1,30 @@
+{
+  "event": "messages.upsert",
+  "instance": "loja",
+  "data": {
+    "key": {
+      "remoteJid": "5512982771647@s.whatsapp.net",
+      "fromMe": false,
+      "id": "TEST_IMAGE_MINIO_123456"
+    },
+    "pushName": "Teste Usuario",
+    "message": {
+      "imageMessage": {
+        "url": "https://mmg.whatsapp.net/o1/v/t62.7118-24/12345678_123456789012345_1234567890123456789_n.enc?ccb=11-4&oh=01_Q5AaIghTmq1234567890&oe=67890123&_nc_sid=5e03e0&mms3=true",
+        "mimetype": "image/jpeg",
+        "caption": "Teste de imagem para MinIO",
+        "fileSha256": "abcd1234567890",
+        "fileLength": "123456",
+        "height": 1080,
+        "width": 1920,
+        "mediaKey": "test123456789",
+        "fileEncSha256": "efgh1234567890",
+        "directPath": "/v/t62.7118-24/12345678_123456789012345_1234567890123456789_n.enc",
+        "mediaKeyTimestamp": "1234567890",
+        "jpegThumbnail": "/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k="
+      }
+    },
+    "messageType": "imageMessage",
+    "messageTimestamp": 1755868800
+  }
+}

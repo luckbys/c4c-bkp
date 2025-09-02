@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Fluxo de Mensagens</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background: white;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+        }
+        .test-section h3 {
+            margin-top: 0;
+            color: #333;
+        }
+        button {
+            background: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0056b3;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 5px;
+            white-space: pre-wrap;
+        }
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+        .info {
+            background: #d1ecf1;
+            border: 1px solid #bee5eb;
+            color: #0c5460;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        select, input[type="text"] {
+            padding: 8px;
+            margin: 5px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🔍 Teste de Fluxo de Mensagens com Anexos</h1>
+        <p>Este teste verifica o fluxo completo: Upload → Salvamento → Envio → Exibição</p>
+
+        <div class="test-section">
+            <h3>1. Configuração</h3>
+            <label>Instância:</label>
+            <select id="instanceSelect">
+                <option value="loja">loja</option>
+                <option value="evolution_exchange">evolution_exchange</option>
+            </select>
+            <br>
+            <label>RemoteJid (Telefone):</label>
+            <input type="text" id="remoteJid" placeholder="5511999999999@s.whatsapp.net" value="5511999999999@s.whatsapp.net">
+            <br>
+            <label>Arquivo:</label>
+            <input type="file" id="fileInput" accept="image/*,application/pdf,audio/*,video/*">
+        </div>
+
+        <div class="test-section">
+            <h3>2. Teste de Upload</h3>
+            <button onclick="testUpload()">Testar Upload de Arquivo</button>
+            <div id="uploadResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>3. Teste de Envio via Evolution API</h3>
+            <button onclick="testSendMedia()">Testar Envio de Mídia</button>
+            <div id="sendResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>4. Verificar Mensagens Salvas</h3>
+            <button onclick="checkMessages()">Verificar Mensagens no Firestore</button>
+            <div id="messagesResult" class="result"></div>
+        </div>
+
+        <div class="test-section">
+            <h3>5. Teste Completo</h3>
+            <button onclick="testCompleteFlow()">Executar Fluxo Completo</button>
+            <div id="completeResult" class="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let uploadedFile = null;
+
+        async function testUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('uploadResult');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Por favor, selecione um arquivo primeiro.';
+                return;
+            }
+
+            const file = fileInput.files[0];
+            resultDiv.className = 'result info';
+            resultDiv.textContent = `Fazendo upload de: ${file.name} (${file.size} bytes, ${file.type})`;
+
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('messageId', `test-msg-${Date.now()}`);
+                formData.append('ticketId', `test-ticket-${Date.now()}`);
+
+                const response = await fetch('/api/media/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    uploadedFile = {
+                        url: result.url,
+                        fileName: result.fileName,
+                        size: result.size,
+                        mimeType: file.type
+                    };
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Upload bem-sucedido!\nURL: ${result.url}\nArquivo: ${result.fileName}\nTamanho: ${result.size} bytes`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Erro no upload: ${result.error || 'Erro desconhecido'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Erro na requisição: ${error.message}`;
+            }
+        }
+
+        async function testSendMedia() {
+            const instanceName = document.getElementById('instanceSelect').value;
+            const remoteJid = document.getElementById('remoteJid').value;
+            const resultDiv = document.getElementById('sendResult');
+
+            if (!uploadedFile) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = 'Por favor, faça o upload de um arquivo primeiro.';
+                return;
+            }
+
+            resultDiv.className = 'result info';
+            resultDiv.textContent = 'Enviando mídia via Evolution API...';
+
+            try {
+                // Determinar tipo de mídia
+                let mediaType = 'document';
+                if (uploadedFile.mimeType) {
+                    if (uploadedFile.mimeType.startsWith('image/')) mediaType = 'image';
+                    else if (uploadedFile.mimeType.startsWith('video/')) mediaType = 'video';
+                    else if (uploadedFile.mimeType.startsWith('audio/')) mediaType = 'audio';
+                }
+
+                const response = await fetch('/api/send-media', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        instanceName,
+                        remoteJid,
+                        mediaUrl: uploadedFile.url,
+                        mediaType,
+                        fileName: uploadedFile.fileName
+                    })
+                });
+
+                const result = await response.json();
+
+                if (response.ok && result.success) {
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ Mídia enviada com sucesso!\nMessage ID: ${result.messageId || 'N/A'}\nTipo: ${mediaType}`;
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Erro no envio: ${result.error || 'Erro desconhecido'}\nDetalhes: ${result.details || 'N/A'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Erro na requisição: ${error.message}`;
+            }
+        }
+
+        async function checkMessages() {
+            const instanceName = document.getElementById('instanceSelect').value;
+            const remoteJid = document.getElementById('remoteJid').value;
+            const resultDiv = document.getElementById('messagesResult');
+
+            resultDiv.className = 'result info';
+            resultDiv.textContent = 'Verificando mensagens no Firestore...';
+
+            try {
+                const response = await fetch(`/api/messages?instance=${encodeURIComponent(instanceName)}&remoteJid=${encodeURIComponent(remoteJid)}&limit=10`);
+                const result = await response.json();
+
+                if (response.ok) {
+                    const messages = result.messages || [];
+                    resultDiv.className = 'result success';
+                    resultDiv.textContent = `✅ ${messages.length} mensagens encontradas:\n\n` + 
+                        messages.map((msg, i) => 
+                            `${i+1}. ${msg.type || 'text'} - ${msg.sender} - ${new Date(msg.timestamp?.seconds * 1000 || msg.timestamp).toLocaleString()}\n   Conteúdo: ${msg.content.substring(0, 100)}...`
+                        ).join('\n\n');
+                } else {
+                    resultDiv.className = 'result error';
+                    resultDiv.textContent = `❌ Erro ao buscar mensagens: ${result.error || 'Erro desconhecido'}`;
+                }
+            } catch (error) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent = `❌ Erro na requisição: ${error.message}`;
+            }
+        }
+
+        async function testCompleteFlow() {
+            const resultDiv = document.getElementById('completeResult');
+            resultDiv.className = 'result info';
+            resultDiv.textContent = 'Executando fluxo completo...\n';
+
+            // 1. Upload
+            resultDiv.textContent += '1. Fazendo upload...\n';
+            await testUpload();
+            
+            if (!uploadedFile) {
+                resultDiv.className = 'result error';
+                resultDiv.textContent += '❌ Falha no upload. Parando teste.\n';
+                return;
+            }
+
+            // 2. Envio
+            resultDiv.textContent += '2. Enviando via Evolution API...\n';
+            await testSendMedia();
+
+            // 3. Aguardar um pouco
+            resultDiv.textContent += '3. Aguardando processamento (3s)...\n';
+            await new Promise(resolve => setTimeout(resolve, 3000));
+
+            // 4. Verificar mensagens
+            resultDiv.textContent += '4. Verificando mensagens salvas...\n';
+            await checkMessages();
+
+            resultDiv.className = 'result success';
+            resultDiv.textContent += '\n✅ Fluxo completo executado!';
+        }
+    </script>
+</body>
+</html>

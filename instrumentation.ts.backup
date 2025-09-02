@@ -1,0 +1,15 @@
+// This file is required for Next.js 15.3+ client instrumentation
+// You can add monitoring and analytics code here if needed
+
+export async function register() {
+  // Add any instrumentation setup here
+  // For example: performance monitoring, error tracking, analytics
+  
+  if (process.env.NEXT_RUNTIME === 'nodejs') {
+    // Server-side instrumentation
+  }
+  
+  if (process.env.NEXT_RUNTIME === 'edge') {
+    // Edge runtime instrumentation
+  }
+}

@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Upload</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 20px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .result {
+            margin-top: 10px;
+            padding: 10px;
+            border-radius: 4px;
+        }
+        .success {
+            background-color: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background-color: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .info {
+            background-color: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background-color: #007bff;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+        input[type="file"] {
+            margin: 10px 0;
+        }
+        pre {
+            background-color: #f8f9fa;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+            white-space: pre-wrap;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔍 Teste de Upload - Diagnóstico</h1>
+    
+    <div class="test-section">
+        <h2>1. Teste de Diagnóstico Geral</h2>
+        <button onclick="testDiagnostic()">Executar Diagnóstico</button>
+        <div id="diagnostic-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>2. Teste de Upload de Arquivo</h2>
+        <input type="file" id="fileInput" accept="image/*,application/pdf,audio/*,video/*">
+        <br>
+        <button onclick="testUpload()">Testar Upload</button>
+        <div id="upload-result" class="result"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>3. Teste com Arquivo JPEG Sintético</h2>
+        <button onclick="testSyntheticJPEG()">Testar JPEG Sintético</button>
+        <div id="synthetic-result" class="result"></div>
+    </div>
+
+    <script>
+        async function testDiagnostic() {
+            const resultDiv = document.getElementById('diagnostic-result');
+            resultDiv.innerHTML = '<div class="info">Executando diagnóstico...</div>';
+            
+            try {
+                const response = await fetch('/api/test-upload', {
+                    method: 'GET'
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ Diagnóstico Concluído:</strong> ${data.message}
+                            <pre>${JSON.stringify(data.diagnostics, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <strong>❌ Diagnóstico Falhou:</strong> ${data.message}
+                            <pre>${JSON.stringify(data.diagnostics, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ Erro:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        async function testUpload() {
+            const fileInput = document.getElementById('fileInput');
+            const resultDiv = document.getElementById('upload-result');
+            
+            if (!fileInput.files[0]) {
+                resultDiv.innerHTML = '<div class="error">❌ Selecione um arquivo primeiro</div>';
+                return;
+            }
+            
+            const file = fileInput.files[0];
+            resultDiv.innerHTML = `<div class="info">Enviando arquivo: ${file.name} (${file.size} bytes, ${file.type})...</div>`;
+            
+            try {
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('messageId', 'test-message-' + Date.now());
+                formData.append('ticketId', 'test-ticket-' + Date.now());
+                
+                const response = await fetch('/api/media/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ Upload Concluído:</strong>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <strong>❌ Upload Falhou:</strong> ${data.error}
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ Erro:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+        
+        async function testSyntheticJPEG() {
+            const resultDiv = document.getElementById('synthetic-result');
+            resultDiv.innerHTML = '<div class="info">Criando e enviando JPEG sintético...</div>';
+            
+            try {
+                // Criar um JPEG mínimo válido
+                const jpegBytes = new Uint8Array([
+                    0xFF, 0xD8, 0xFF, 0xE0, 0x00, 0x10, 0x4A, 0x46, 0x49, 0x46, 0x00, 0x01,
+                    0x01, 0x01, 0x00, 0x48, 0x00, 0x48, 0x00, 0x00, 0xFF, 0xDB, 0x00, 0x43,
+                    0x00, 0x08, 0x06, 0x06, 0x07, 0x06, 0x05, 0x08, 0x07, 0x07, 0x07, 0x09,
+                    0x09, 0x08, 0x0A, 0x0C, 0x14, 0x0D, 0x0C, 0x0B, 0x0B, 0x0C, 0x19, 0x12,
+                    0x13, 0x0F, 0x14, 0x1D, 0x1A, 0x1F, 0x1E, 0x1D, 0x1A, 0x1C, 0x1C, 0x20,
+                    0x24, 0x2E, 0x27, 0x20, 0x22, 0x2C, 0x23, 0x1C, 0x1C, 0x28, 0x37, 0x29,
+                    0x2C, 0x30, 0x31, 0x34, 0x34, 0x34, 0x1F, 0x27, 0x39, 0x3D, 0x38, 0x32,
+                    0x3C, 0x2E, 0x33, 0x34, 0x32, 0xFF, 0xD9
+                ]);
+                
+                const blob = new Blob([jpegBytes], { type: 'image/jpeg' });
+                const file = new File([blob], 'test-synthetic.jpg', { type: 'image/jpeg' });
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('messageId', 'test-synthetic-' + Date.now());
+                formData.append('ticketId', 'test-ticket-' + Date.now());
+                
+                const response = await fetch('/api/media/upload', {
+                    method: 'POST',
+                    body: formData
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    resultDiv.innerHTML = `
+                        <div class="success">
+                            <strong>✅ Upload JPEG Sintético Concluído:</strong>
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                } else {
+                    resultDiv.innerHTML = `
+                        <div class="error">
+                            <strong>❌ Upload JPEG Sintético Falhou:</strong> ${data.error}
+                            <pre>${JSON.stringify(data, null, 2)}</pre>
+                        </div>
+                    `;
+                }
+            } catch (error) {
+                resultDiv.innerHTML = `
+                    <div class="error">
+                        <strong>❌ Erro:</strong> ${error.message}
+                    </div>
+                `;
+            }
+        }
+    </script>
+</body>
+</html>

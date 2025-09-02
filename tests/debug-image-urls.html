@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Debug - URLs de Imagem</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        .test-section { margin: 20px 0; padding: 15px; border: 1px solid #ddd; border-radius: 5px; }
+        .url-test { margin: 10px 0; padding: 10px; background: #f5f5f5; border-radius: 3px; }
+        .success { color: green; }
+        .error { color: red; }
+        .warning { color: orange; }
+        img { max-width: 200px; max-height: 150px; border: 1px solid #ccc; }
+        .url-display { font-family: monospace; font-size: 12px; word-break: break-all; }
+    </style>
+</head>
+<body>
+    <h1>🔍 Debug - URLs de Imagem do Firebase Storage</h1>
+    
+    <div class="test-section">
+        <h2>📋 Teste de URLs</h2>
+        <p>Este teste verifica se as URLs do Firebase Storage estão funcionando corretamente.</p>
+        <div id="url-tests"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🖼️ Teste de Carregamento</h2>
+        <p>Teste visual de carregamento de imagens:</p>
+        <div id="image-tests"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔧 Teste de Proxy</h2>
+        <p>Teste do proxy de imagem:</p>
+        <div id="proxy-tests"></div>
+    </div>
+
+    <script>
+        // URLs de teste (substitua por URLs reais do seu Firebase)
+        const testUrls = [
+            // Exemplo de URL truncada (como no seu log)
+            'https://firebasestorage.googleapis.com/v0/b/cerc-3',
+            
+            // Exemplo de URL completa válida (substitua pelo seu projeto)
+            'https://firebasestorage.googleapis.com/v0/b/seu-projeto.appspot.com/o/images%2Fteste%2F2024%2F08%2Ftest.jpg?alt=media&token=abc123',
+            
+            // Data URL de teste
+            'data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAUEAEAAAAAAAAAAAAAAAAAAAAA/8QAFQEBAQAAAAAAAAAAAAAAAAAAAAX/xAAUEQEAAAAAAAAAAAAAAAAAAAAA/9oADAMBAAIRAxEAPwCdABmX/9k='
+        ];
+
+        function log(message, type = 'info') {
+            console.log(`[${type.toUpperCase()}] ${message}`);
+        }
+
+        function testUrl(url, index) {
+            const container = document.getElementById('url-tests');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'url-test';
+            
+            let status = 'unknown';
+            let message = '';
+            
+            try {
+                if (url.startsWith('data:')) {
+                    status = 'data-url';
+                    message = 'Data URL válida';
+                } else if (url.includes('firebasestorage.googleapis.com')) {
+                    const urlObj = new URL(url);
+                    if (urlObj.pathname && urlObj.searchParams.get('alt') === 'media') {
+                        status = 'valid';
+                        message = 'URL do Firebase Storage válida';
+                    } else if (url.endsWith('cerc-3')) {
+                        status = 'truncated';
+                        message = 'URL truncada - falta token e parâmetros';
+                    } else {
+                        status = 'incomplete';
+                        message = 'URL do Firebase Storage incompleta';
+                    }
+                } else {
+                    const urlObj = new URL(url);
+                    status = 'valid';
+                    message = 'URL HTTP válida';
+                }
+            } catch (error) {
+                status = 'invalid';
+                message = `URL inválida: ${error.message}`;
+            }
+            
+            const statusClass = status === 'valid' || status === 'data-url' ? 'success' : 
+                              status === 'truncated' || status === 'incomplete' ? 'warning' : 'error';
+            
+            testDiv.innerHTML = `
+                <h4>Teste ${index + 1} - <span class="${statusClass}">${message}</span></h4>
+                <div class="url-display">${url}</div>
+                <p><strong>Status:</strong> ${status}</p>
+            `;
+            
+            container.appendChild(testDiv);
+            
+            return { url, status, message };
+        }
+
+        function testImageLoading(url, index) {
+            const container = document.getElementById('image-tests');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'url-test';
+            
+            testDiv.innerHTML = `
+                <h4>Imagem ${index + 1}</h4>
+                <div class="url-display">${url.substring(0, 100)}${url.length > 100 ? '...' : ''}</div>
+                <div id="img-container-${index}">Carregando...</div>
+            `;
+            
+            container.appendChild(testDiv);
+            
+            const imgContainer = document.getElementById(`img-container-${index}`);
+            const img = new Image();
+            
+            img.onload = () => {
+                log(`✅ Imagem ${index + 1} carregada com sucesso`, 'success');
+                imgContainer.innerHTML = '';
+                imgContainer.appendChild(img);
+            };
+            
+            img.onerror = (error) => {
+                log(`❌ Erro ao carregar imagem ${index + 1}`, 'error');
+                imgContainer.innerHTML = `<div class="error">❌ Erro ao carregar imagem</div>`;
+                
+                // Tentar via proxy se for Firebase Storage
+                if (url.includes('firebasestorage.googleapis.com')) {
+                    log(`🔄 Tentando carregar imagem ${index + 1} via proxy`, 'info');
+                    testProxyImage(url, index);
+                }
+            };
+            
+            img.src = url;
+        }
+
+        function testProxyImage(originalUrl, index) {
+            const container = document.getElementById('proxy-tests');
+            const testDiv = document.createElement('div');
+            testDiv.className = 'url-test';
+            
+            const proxyUrl = `/api/image-proxy?url=${encodeURIComponent(originalUrl)}`;
+            
+            testDiv.innerHTML = `
+                <h4>Proxy Teste ${index + 1}</h4>
+                <div class="url-display">Original: ${originalUrl.substring(0, 80)}...</div>
+                <div class="url-display">Proxy: ${proxyUrl}</div>
+                <div id="proxy-container-${index}">Testando proxy...</div>
+            `;
+            
+            container.appendChild(testDiv);
+            
+            const proxyContainer = document.getElementById(`proxy-container-${index}`);
+            const img = new Image();
+            
+            img.onload = () => {
+                log(`✅ Proxy funcionou para imagem ${index + 1}`, 'success');
+                proxyContainer.innerHTML = '';
+                proxyContainer.appendChild(img);
+            };
+            
+            img.onerror = (error) => {
+                log(`❌ Proxy falhou para imagem ${index + 1}`, 'error');
+                proxyContainer.innerHTML = `<div class="error">❌ Proxy também falhou</div>`;
+            };
+            
+            img.src = proxyUrl;
+        }
+
+        // Executar testes
+        document.addEventListener('DOMContentLoaded', () => {
+            log('🧪 Iniciando testes de URL de imagem');
+            
+            // Testar validação de URLs
+            testUrls.forEach((url, index) => {
+                const result = testUrl(url, index);
+                log(`URL ${index + 1}: ${result.status} - ${result.message}`);
+            });
+            
+            // Testar carregamento de imagens
+            testUrls.forEach((url, index) => {
+                if (url.startsWith('http') || url.startsWith('data:')) {
+                    testImageLoading(url, index);
+                }
+            });
+            
+            log('🧪 Testes iniciados. Verifique o console e a página para resultados.');
+        });
+    </script>
+</body>
+</html>

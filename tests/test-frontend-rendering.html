@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teste de Renderização de Imagens</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        .test-section {
+            margin: 20px 0;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+        }
+        .image-container {
+            margin: 10px 0;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 4px;
+        }
+        .image-container img {
+            max-width: 200px;
+            max-height: 200px;
+            border: 1px solid #ccc;
+        }
+        .log {
+            background: #000;
+            color: #0f0;
+            padding: 10px;
+            font-family: monospace;
+            font-size: 12px;
+            max-height: 300px;
+            overflow-y: auto;
+            margin: 10px 0;
+        }
+        .error {
+            color: #f00;
+        }
+        .success {
+            color: #0f0;
+        }
+        .warning {
+            color: #ff0;
+        }
+    </style>
+</head>
+<body>
+    <h1>🧪 Teste de Renderização de Imagens do Chat</h1>
+    
+    <div class="test-section">
+        <h2>📊 Status dos Testes</h2>
+        <div id="status">Carregando...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🔍 Mensagens do Firebase</h2>
+        <div id="messages">Carregando mensagens...</div>
+    </div>
+    
+    <div class="test-section">
+        <h2>🖼️ Teste de Renderização</h2>
+        <div id="image-tests"></div>
+    </div>
+    
+    <div class="test-section">
+        <h2>📝 Logs de Debug</h2>
+        <div id="logs" class="log"></div>
+    </div>
+
+    <script>
+        const logs = document.getElementById('logs');
+        const status = document.getElementById('status');
+        const messages = document.getElementById('messages');
+        const imageTests = document.getElementById('image-tests');
+        
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const className = type === 'error' ? 'error' : type === 'success' ? 'success' : type === 'warning' ? 'warning' : '';
+            logs.innerHTML += `<div class="${className}">[${timestamp}] ${message}</div>`;
+            logs.scrollTop = logs.scrollHeight;
+            console.log(`[${timestamp}] ${message}`);
+        }
+        
+        // Simular a função detectContentType
+        function detectContentType(content) {
+            if (!content) return 'text';
+            
+            // URLs do Firebase Storage
+            if (content.includes('firebasestorage.googleapis.com')) {
+                return 'image';
+            }
+            
+            // Base64 images
+            if (content.startsWith('data:image/')) {
+                return 'image';
+            }
+            
+            // Placeholders
+            if (content.includes('[Imagem]') || content.includes('📷')) {
+                return 'image';
+            }
+            
+            // URLs de imagem
+            if (content.match(/\.(jpg|jpeg|png|gif|webp)(\?|$)/i)) {
+                return 'image';
+            }
+            
+            return 'text';
+        }
+        
+        function createImageElement(content, messageId) {
+            const container = document.createElement('div');
+            container.className = 'image-container';
+            container.innerHTML = `
+                <h4>Mensagem ID: ${messageId}</h4>
+                <p><strong>Conteúdo:</strong> ${content.substring(0, 100)}...</p>
+                <p><strong>Tipo detectado:</strong> ${detectContentType(content)}</p>
+                <div id="img-${messageId}">Carregando imagem...</div>
+            `;
+            
+            const imgContainer = container.querySelector(`#img-${messageId}`);
+            
+            if (detectContentType(content) === 'image') {
+                const img = document.createElement('img');
+                img.src = content;
+                img.onload = () => {
+                    log(`✅ Imagem carregada com sucesso: ${messageId}`, 'success');
+                    imgContainer.innerHTML = '';
+                    imgContainer.appendChild(img);
+                };
+                img.onerror = (error) => {
+                    log(`❌ Erro ao carregar imagem: ${messageId} - ${error}`, 'error');
+                    imgContainer.innerHTML = `<div style="color: red;">❌ Erro ao carregar imagem</div>`;
+                };
+                
+                // Timeout para detectar carregamento lento
+                setTimeout(() => {
+                    if (!img.complete) {
+                        log(`⚠️ Imagem ainda carregando após 5s: ${messageId}`, 'warning');
+                    }
+                }, 5000);
+            } else {
+                imgContainer.innerHTML = `<div style="color: orange;">⚠️ Não é uma imagem</div>`;
+            }
+            
+            return container;
+        }
+        
+        async function loadMessages() {
+            try {
+                log('🔍 Buscando mensagens do Firebase...');
+                
+                const response = await fetch('/api/debug-messages?remoteJid=5512981022013@s.whatsapp.net&instanceName=teste&limit=10');
+                const data = await response.json();
+                
+                if (!data.success) {
+                    throw new Error(data.error);
+                }
+                
+                log(`✅ ${data.messages.length} mensagens encontradas`, 'success');
+                
+                // Atualizar status
+                status.innerHTML = `
+                    <p><strong>Total de mensagens:</strong> ${data.stats.total}</p>
+                    <p><strong>Imagens:</strong> ${data.stats.images}</p>
+                    <p><strong>Com URL do Firebase:</strong> ${data.stats.withFirebaseUrl}</p>
+                    <p><strong>Com Base64:</strong> ${data.stats.withBase64}</p>
+                `;
+                
+                // Mostrar mensagens
+                const messagesList = data.messages.map(msg => `
+                    <div style="margin: 10px 0; padding: 10px; border: 1px solid #ccc;">
+                        <p><strong>ID:</strong> ${msg.id}</p>
+                        <p><strong>Tipo:</strong> ${msg.type}</p>
+                        <p><strong>Análise:</strong> 
+                            Imagem: ${msg.analysis.isImage ? '✅' : '❌'}, 
+                            Firebase URL: ${msg.analysis.hasFirebaseUrl ? '✅' : '❌'}, 
+                            Base64: ${msg.analysis.hasBase64 ? '✅' : '❌'}
+                        </p>
+                        <p><strong>Conteúdo:</strong> ${msg.contentPreview}</p>
+                    </div>
+                `).join('');
+                
+                messages.innerHTML = messagesList;
+                
+                // Testar renderização das imagens
+                log('🖼️ Testando renderização das imagens...');
+                
+                const imageMessages = data.messages.filter(msg => msg.analysis.isImage);
+                
+                if (imageMessages.length === 0) {
+                    imageTests.innerHTML = '<p>❌ Nenhuma imagem encontrada para testar</p>';
+                    log('❌ Nenhuma imagem encontrada para testar', 'error');
+                } else {
+                    imageMessages.forEach(msg => {
+                        const imageElement = createImageElement(msg.content, msg.id);
+                        imageTests.appendChild(imageElement);
+                        log(`🖼️ Testando renderização da imagem: ${msg.id}`);
+                    });
+                }
+                
+            } catch (error) {
+                log(`❌ Erro ao carregar mensagens: ${error.message}`, 'error');
+                status.innerHTML = `<p style="color: red;">❌ Erro: ${error.message}</p>`;
+            }
+        }
+        
+        // Inicializar testes
+        log('🧪 Iniciando testes de renderização...');
+        loadMessages();
+        
+        // Recarregar a cada 10 segundos
+        setInterval(() => {
+            log('🔄 Recarregando mensagens...');
+            loadMessages();
+        }, 10000);
+    </script>
+</body>
+</html>
