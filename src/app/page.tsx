@@ -287,7 +287,7 @@ export default function CrmPage() {
     }
   }, [selectedTicket]);
 
-  const handleNewMessage = async (ticketId: string, messageText: string, quoted?: { id: string; content: string; sender: 'client' | 'agent' }, attachments?: { url: string; fileName: string; size: number; type: string }[], testMode?: { enabled: boolean; asClient: boolean }) => {
+  const handleNewMessage = async (ticketId: string, messageText: string, quoted?: { id: string; content: string; sender: 'client' | 'agent' } | null, attachments?: { url: string; fileName: string; size: number; type: string; mimeType?: string }[], testMode?: { enabled: boolean; asClient: boolean }) => {
     console.log('🔍 [DEBUG] handleNewMessage called:', { ticketId, messageText, testMode });
     
     if (!selectedInstance) {
@@ -315,25 +315,13 @@ export default function CrmPage() {
       // Se há arquivos anexados, enviar cada um via Evolution API
       if (attachments && attachments.length > 0) {
         for (const attachment of attachments) {
-          // Determinar o tipo de mídia baseado no mimeType primeiro, depois no tipo
+          // Determinar o tipo de mídia baseado no tipo do attachment
           let mediaType: 'image' | 'video' | 'audio' | 'document' = 'document';
           
-          if (attachment.mimeType) {
-            if (attachment.mimeType.startsWith('image/')) {
-              mediaType = 'image';
-            } else if (attachment.mimeType.startsWith('video/')) {
-              mediaType = 'video';
-            } else if (attachment.mimeType.startsWith('audio/')) {
-              mediaType = 'audio';
-            } else {
-              mediaType = 'document';
-            }
-          } else {
-            // Fallback para o tipo se não houver mimeType
-            mediaType = attachment.type === 'image' ? 'image' : 
-                       attachment.type === 'video' ? 'video' : 
-                       attachment.type === 'audio' ? 'audio' : 'document';
-          }
+          // Usar o tipo do attachment diretamente
+          mediaType = attachment.type === 'image' ? 'image' : 
+                     attachment.type === 'video' ? 'video' : 
+                     attachment.type === 'audio' ? 'audio' : 'document';
           
           await clientFirebaseService.sendMediaMessage(
             selectedInstance,
@@ -351,7 +339,7 @@ export default function CrmPage() {
           instanceName: selectedInstance,
           remoteJid: ticket.client.id,
           messageText,
-          quoted: null
+          quoted: undefined
         });
         }
         
@@ -413,7 +401,7 @@ export default function CrmPage() {
           instanceName: selectedInstance,
           remoteJid: ticket.client.id,
           messageText,
-          quoted: quoted || null
+          quoted: quoted || undefined
         });
         
         // Invalidar cache para forçar recarregamento das mensagens

@@ -61,6 +61,7 @@ interface AttachedFile {
   fileName: string;
   size: number;
   type: string;
+  mimeType?: string;
 }
 
 interface ChatPanelProps {

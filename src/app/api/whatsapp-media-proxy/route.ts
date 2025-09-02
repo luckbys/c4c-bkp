@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
         try {
           console.log(`🔓 [WHATSAPP PROXY] Tentando endpoint: ${endpoint}`);
           
-          const response = await fetch(`${evolutionUrl}${endpoint}`, {
+          const response: Response = await fetch(`${evolutionUrl}${endpoint}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -94,7 +94,7 @@ export async function GET(request: NextRequest) {
           });
           
           if (response.ok) {
-            const data = await response.json();
+            const data: any = await response.json();
             console.log('✅ [WHATSAPP PROXY] Descriptografia bem-sucedida via Evolution API');
             
             // Se retornou base64, converter para buffer
@@ -163,7 +163,7 @@ async function downloadDirectly(url: string): Promise<NextResponse> {
   try {
     console.log('📥 [WHATSAPP PROXY] Fazendo download direto:', url.substring(0, 100) + '...');
     
-    const response = await fetch(url, {
+    const response: Response = await fetch(url, {
       headers: {
         'User-Agent': 'WhatsApp/2.23.20.0',
         'Accept': '*/*',
