@@ -95,7 +95,7 @@ export default function ChatPanel({
 
   const chatBodyRef = React.useRef<HTMLDivElement>(null);
   const messagesEndRef = React.useRef<HTMLDivElement>(null);
-  const [isCompactMode, setIsCompactMode] = React.useState(false);
+  const [isCompactMode, setIsCompactMode] = React.useState(true);
   const [showContextInfo, setShowContextInfo] = React.useState(true);
   const [currentTicket, setCurrentTicket] = React.useState<Ticket>(ticket);
   // Removido estado local de mensagens para evitar conflito com props
@@ -114,7 +114,7 @@ export default function ChatPanel({
   const [loadingAgents, setLoadingAgents] = React.useState(false);
   
   // Estados para o botão de scroll to bottom
-  const [showScrollButton, setShowScrollButton] = React.useState(false);
+  const [showScrollButton, setShowScrollButton] = React.useState(true);
   const [isScrolling, setIsScrolling] = React.useState(false);
 
   // Ref para controlar se o componente está montado
@@ -335,17 +335,35 @@ export default function ChatPanel({
     
     setIsScrolling(true);
     
-    // Scroll suave para o final
-    messagesEndRef.current.scrollIntoView({ 
-      behavior: 'smooth',
-      block: 'end'
-    });
-    
-    // Aguardar a animação de scroll terminar (aproximadamente 500ms)
-    setTimeout(() => {
+    try {
+      // Primeiro tentar scroll no container do chat
+      const chatContainer = chatBodyRef.current;
+      if (chatContainer) {
+        chatContainer.scrollTo({
+          top: chatContainer.scrollHeight,
+          behavior: 'smooth'
+        });
+      }
+      
+      // Fallback: scroll para o elemento final
+      setTimeout(() => {
+        if (messagesEndRef.current) {
+          messagesEndRef.current.scrollIntoView({ 
+            behavior: 'smooth',
+            block: 'end'
+          });
+        }
+      }, 100);
+      
+      // Aguardar a animação de scroll terminar
+      setTimeout(() => {
+        setIsScrolling(false);
+        // Não esconder o botão imediatamente, deixar a lógica de scroll decidir
+      }, 800);
+    } catch (error) {
+      console.error('Erro ao fazer scroll:', error);
       setIsScrolling(false);
-      setShowScrollButton(false);
-    }, 600);
+    }
   }, []);
 
   // Detectar posição do scroll para mostrar/esconder botão
@@ -355,10 +373,25 @@ export default function ChatPanel({
 
     const handleScroll = () => {
       const { scrollTop, scrollHeight, clientHeight } = chatContainer;
-      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 150;
+      const isNearBottom = scrollTop + clientHeight >= scrollHeight - 100;
       
-      // Mostrar botão apenas se não estiver próximo do final e houver mensagens
-      setShowScrollButton(!isNearBottom && allMessages.length > 0 && !isScrolling);
+      // Mostrar botão se não estiver próximo do final e houver mensagens suficientes
+      const shouldShowButton = !isNearBottom && allMessages.length > 0 && !isScrolling;
+      
+      // Debounce para evitar mudanças muito rápidas
+      setTimeout(() => {
+        setShowScrollButton(shouldShowButton);
+      }, 100);
+      
+      console.log('🔄 [SCROLL] Estado do botão:', {
+        scrollTop,
+        scrollHeight,
+        clientHeight,
+        isNearBottom,
+        messagesCount: allMessages.length,
+        shouldShowButton,
+        isScrolling
+      });
     };
 
     chatContainer.addEventListener('scroll', handleScroll);
@@ -867,7 +900,7 @@ export default function ChatPanel({
           
           {/* Mensagens com fade in */}
           <div className={cn(
-            "transition-opacity duration-300",
+            "transition-opacity duration-300 relative",
             isLoadingMessages ? "opacity-0" : "opacity-100"
           )}>
 
@@ -896,35 +929,43 @@ export default function ChatPanel({
             <div ref={messagesEndRef} />
           </div>
           
+          {/* Botão de Scroll to Bottom - Posicionado estrategicamente no canto inferior direito */}
+          {showScrollButton && (
+            <div className="fixed bottom-20 right-6 z-50">
+              <TooltipProvider>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      onClick={scrollToBottom}
+                      disabled={isScrolling}
+                      size="sm"
+                      variant="secondary"
+                      className={cn(
+                        "h-12 w-12 rounded-full shadow-xl border-2 border-primary/20",
+                        "bg-background/95 backdrop-blur-sm hover:bg-primary/10",
+                        "transition-all duration-300 ease-out",
+                        "hover:scale-110 hover:shadow-2xl hover:border-primary/40",
+                        "animate-in fade-in-0 slide-in-from-bottom-4 duration-300",
+                        isScrolling && "animate-pulse scale-105"
+                      )}
+                    >
+                      {isScrolling ? (
+                        <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                      ) : (
+                        <ChevronDown className="h-5 w-5 text-primary" />
+                      )}
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="left">
+                    <p>Ir para o final da conversa</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            </div>
+          )}
+          
           {/* Removido skeleton de transição que causava conflito com scroll */}
         </div>
-        
-        {/* Botão de Scroll to Bottom */}
-        {showScrollButton && (
-          <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 z-10">
-            <Button
-              onClick={scrollToBottom}
-              disabled={isScrolling}
-              size="sm"
-              variant="secondary"
-              className={cn(
-                "h-10 w-10 rounded-full shadow-lg border border-border/50",
-                "bg-background/95 backdrop-blur-sm hover:bg-background",
-                "transition-all duration-300 ease-out",
-                "hover:scale-110 hover:shadow-xl",
-                "animate-in fade-in-0 slide-in-from-bottom-2",
-                isScrolling && "animate-pulse"
-              )}
-              title="Ir para o final da conversa"
-            >
-              {isScrolling ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
-              ) : (
-                <ChevronDown className="h-4 w-4" />
-              )}
-            </Button>
-          </div>
-        )}
       </div>
 
       <ModernMessageInput 
